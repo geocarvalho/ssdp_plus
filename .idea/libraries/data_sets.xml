@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="data sets">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/data sets/Bioinformatic.zip!/" />
+      <root url="jar://$PROJECT_DIR$/data sets/Humanitie and ssocial sciences.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

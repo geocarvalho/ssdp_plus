@@ -151,11 +151,12 @@ public class SSDPplus {
         //*******************************************
         //Data set                    ***************
         //*******************************************
-        String caminho = "C:\\Users\\tarci\\OneDrive\\Documentos\\NetBeansProjects\\SSDPplusGit\\pastas\\bases\\"; 
-        String nomeBase = "alon-clean50-pn-width-2.CSV";
+        //String caminho = "C:\\Users\\tarci\\OneDrive\\Documentos\\NetBeansProjects\\SSDPplusGit\\pastas\\bases\\";
+        //String nomeBase = "alon-clean50-pn-width-2.CSV";
         //String nomeBase = "ENEM2014_81_NOTA_10k.csv";
         //String nomeBase = "matrixBinaria-Global-100-p.csv";
-        String caminhoBase = caminho + nomeBase;
+        //String caminhoBase = caminho + nomeBase;
+        String caminhoBase = args[0];
        
         //separator database (CSV files)
         D.SEPARADOR = ","; 
@@ -164,24 +165,27 @@ public class SSDPplus {
         //*******************************************
         //END Data set                    ***************
         //*******************************************
-        
+
 
         //*******************************************
         //SSDP+ parameters            ***************
         //*******************************************
         //k: number of subgroups
-        int k = 10; 
+        int k = 10;
         //Evaluation metric
-        String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_WRACC; 
+        String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_WRACC;
         //String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_QG;
         //ks: cache size
-        Pattern.maxSimulares = 5; 
+        //Pattern.maxSimulares = 5;
+        Pattern.maxSimulares = Integer.parseInt(args[1]);
         //min_similarity
-        double similaridade = 0.90; 
+        //double similaridade = 0.90;
+        double similaridade = Double.parseDouble(args[2]);
         //Similarity function
         Pattern.medidaSimilaridade = Const.SIMILARIDADE_JACCARD; //similarity function (default JACCARD)
         //Target (atributevalue)
-        String target = "p";
+        //String target = "p";
+        String target = args[3];
         
         //*******************************************
         //END SSDP+ parameters            ***************

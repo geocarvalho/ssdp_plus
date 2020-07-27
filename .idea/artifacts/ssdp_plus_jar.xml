@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ssdp_plus:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/ssdp_plus_jar</output-path>
+    <root id="archive" name="ssdp_plus.jar">
+      <element id="module-output" name="ssdp_plus" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/SSDPplus/pastas/JAR/commons-math3-3.6.1/commons-math3-3.6.1-sources.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/SSDPplus/pastas/JAR/commons-math3-3.6.1/commons-math3-3.6.1-tools.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/SSDPplus/pastas/JAR/commons-math3-3.6.1/commons-math3-3.6.1-test-sources.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/SSDPplus/pastas/JAR/commons-math3-3.6.1/commons-math3-3.6.1-tests.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/SSDPplus/pastas/JAR/commons-math3-3.6.1/commons-math3-3.6.1-javadoc.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/SSDPplus/pastas/JAR/commons-math3-3.6.1/commons-math3-3.6.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
