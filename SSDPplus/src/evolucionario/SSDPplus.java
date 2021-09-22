@@ -173,8 +173,8 @@ public class SSDPplus {
         //k: number of subgroups
         int k = 10;
         //Evaluation metric
-        String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_WRACC;
-        //String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_QG;
+        //String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_WRACC;
+        String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_QG;
         //ks: cache size
         //Pattern.maxSimulares = 5;
         Pattern.maxSimulares = Integer.parseInt(args[1]);
