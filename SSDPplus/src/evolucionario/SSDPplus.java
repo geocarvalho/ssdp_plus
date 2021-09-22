@@ -171,21 +171,21 @@ public class SSDPplus {
         //SSDP+ parameters            ***************
         //*******************************************
         //k: number of subgroups
-        int k = 10;
+        int k = Integer.parseInt(args[1]);
         //Evaluation metric
         //String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_WRACC;
         String tipoAvaliacao = Avaliador.METRICA_AVALIACAO_QG;
         //ks: cache size
         //Pattern.maxSimulares = 5;
-        Pattern.maxSimulares = Integer.parseInt(args[1]);
+        Pattern.maxSimulares = Integer.parseInt(args[2]);
         //min_similarity
         //double similaridade = 0.90;
-        double similaridade = Double.parseDouble(args[2]);
+        double similaridade = Double.parseDouble(args[3]);
         //Similarity function
         Pattern.medidaSimilaridade = Const.SIMILARIDADE_JACCARD; //similarity function (default JACCARD)
         //Target (atributevalue)
         //String target = "p";
-        String target = args[3];
+        String target = args[4];
         
         //*******************************************
         //END SSDP+ parameters            ***************
