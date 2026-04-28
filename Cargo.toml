@@ -1,0 +1,24 @@
+[package]
+name = "ssdp_plus"
+version = "0.1.0"
+edition = "2021"
+description = "SSDP+ subgroup discovery — evolutionary beam search with diversity filtering (Rust port)"
+repository = "https://github.com/tarcisiodpl/ssdp"
+keywords = ["subgroup-discovery", "pattern-mining", "machine-learning"]
+categories = ["science"]
+readme = "README.md"
+
+[dependencies]
+anyhow = "1"
+csv = "1"
+serde = { version = "1", features = ["derive"] }
+rand = "0.8"
+clap = { version = "4", features = ["derive"] }
+indexmap = "2"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "ssdp_search"
+harness = false
