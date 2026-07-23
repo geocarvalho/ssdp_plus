@@ -1,2 +1,9 @@
 /target
 CLAUDE.md
+
+# IDE
+.idea/
+
+# Rust artifacts
+**/*.rs.bk
+Cargo.lock.bk
