@@ -70,6 +70,22 @@ impl Pattern {
         }
     }
 
+    /// Canonical, sort-stable key for a pattern: items sorted by attribute index.
+    ///
+    /// Two patterns that describe the same subgroup (same attributes and values, possibly in
+    /// different insertion order) produce identical keys.  Used as a tiebreaker when patterns
+    /// have equal quality scores, so that any sort on `(score desc, canonical_key asc)` is a
+    /// total order and produces byte-identical output across runs.
+    pub fn canonical_key(&self) -> Vec<(usize, String)> {
+        let mut key: Vec<(usize, String)> = self
+            .items
+            .iter()
+            .map(|it| (it.attribute, it.value.clone()))
+            .collect();
+        key.sort_by_key(|x| x.0);
+        key
+    }
+
     /// Human-readable rule using dataset column names: `name=value AND ...`.
     ///
     /// Note: This is **not** [`std::string::ToString`]; it requires the dataset for attribute names.

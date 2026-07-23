@@ -28,7 +28,11 @@ pub fn diverse_top_k(
         return Vec::new();
     }
 
-    candidates.sort_by(|a, b| b.1.total_cmp(&a.1));
+    // Total order: descending score, then ascending canonical key as tiebreaker (reproducibility).
+    candidates.sort_by(|a, b| {
+        b.1.total_cmp(&a.1)
+            .then_with(|| a.0.canonical_key().cmp(&b.0.canonical_key()))
+    });
 
     let mut selected: Vec<(Pattern, f64)> = Vec::new();
 

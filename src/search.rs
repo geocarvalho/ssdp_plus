@@ -1,5 +1,6 @@
 //! Evolutionary / stochastic beam search over conjunctive patterns (SSDP+ style).
 
+use std::cmp::Ordering;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -35,20 +36,21 @@ pub struct SearchConfig {
     pub quiet: bool,
 }
 
-fn canonical_key(pattern: &Pattern) -> Vec<(usize, String)> {
-    let mut key: Vec<(usize, String)> = pattern
-        .items
-        .iter()
-        .map(|it| (it.attribute, it.value.clone()))
-        .collect();
-    key.sort_by_key(|x| x.0);
-    key
+/// Total-order comparator: descending score, then ascending canonical key as tiebreaker.
+///
+/// Using score alone leaves ties unresolved in a stable sort, so which tied patterns survive
+/// `truncate` depends on HashMap iteration order (OS-seeded per process).  The canonical key
+/// is a deterministic total order over patterns, making the combined comparator unique for
+/// every pair and therefore reproducible across runs.
+fn score_desc_then_key(a: &(Pattern, f64), b: &(Pattern, f64)) -> Ordering {
+    b.1.total_cmp(&a.1)
+        .then_with(|| a.0.canonical_key().cmp(&b.0.canonical_key()))
 }
 
 fn dedupe_keep_best(candidates: Vec<(Pattern, f64)>) -> Vec<(Pattern, f64)> {
     let mut best: HashMap<Vec<(usize, String)>, (Pattern, f64)> = HashMap::new();
     for (p, s) in candidates {
-        let k = canonical_key(&p);
+        let k = p.canonical_key();
         match best.entry(k) {
             Entry::Occupied(mut e) => {
                 if s > e.get().1 {
@@ -94,7 +96,7 @@ pub fn search(dataset: &Dataset, config: &SearchConfig) -> Vec<(Pattern, f64)> {
         })
         .collect();
 
-    beam.sort_by(|a, b| b.1.total_cmp(&a.1));
+    beam.sort_by(score_desc_then_key);
 
     let cap = beam_capacity(config.k, beam.len());
     beam.truncate(cap);
@@ -143,7 +145,7 @@ pub fn search(dataset: &Dataset, config: &SearchConfig) -> Vec<(Pattern, f64)> {
         }
 
         candidates = dedupe_keep_best(candidates);
-        candidates.sort_by(|a, b| b.1.total_cmp(&a.1));
+        candidates.sort_by(score_desc_then_key);
         candidates.truncate(cap);
 
         let new_best = candidates.first().map(|(_, s)| *s).unwrap_or(0.0);
@@ -161,7 +163,7 @@ pub fn search(dataset: &Dataset, config: &SearchConfig) -> Vec<(Pattern, f64)> {
         best_global = new_best;
     }
 
-    beam.sort_by(|a, b| b.1.total_cmp(&a.1));
+    beam.sort_by(score_desc_then_key);
 
     match &config.diversity {
         Some(div_cfg) => diverse_top_k(beam, dataset, config.k, div_cfg),
@@ -195,5 +197,137 @@ mod tests {
         for w in out.windows(2) {
             assert!(w[0].1 + SCORE_EPS >= w[1].1);
         }
+    }
+
+    /// Two in-process calls with identical config must return byte-identical results.
+    ///
+    /// Before the fix, `dedupe_keep_best` iterated a `HashMap` whose order is OS-seeded per
+    /// process, so tied patterns survived `truncate` non-deterministically.  After the fix,
+    /// `score_desc_then_key` is a total order, so the same output is guaranteed regardless of
+    /// the HashMap iteration order.
+    ///
+    /// The dataset is chosen to produce WRAcc ties (multiple items yield equal coverage counts).
+    #[test]
+    fn search_is_reproducible_in_process() {
+        // 8 rows, 3 binary features — many patterns share the same WRAcc score.
+        let csv = "f1,f2,f3,class\n\
+                   A,X,0,p\n\
+                   A,Y,1,p\n\
+                   A,X,0,n\n\
+                   B,Y,1,p\n\
+                   B,X,0,n\n\
+                   B,Y,1,n\n\
+                   A,X,1,p\n\
+                   B,Y,0,n\n";
+        let ds = Dataset::from_reader(csv.as_bytes(), ',', "class", "p").expect("dataset");
+        let config = SearchConfig {
+            k: 5,
+            metric: Metric::WRAcc,
+            seed: 0,
+            max_time_secs: None,
+            diversity: None,
+            quiet: true,
+        };
+
+        let run1 = search(&ds, &config);
+        let run2 = search(&ds, &config);
+
+        assert_eq!(
+            run1.len(),
+            run2.len(),
+            "both runs must return the same number of patterns"
+        );
+        for (i, ((p1, s1), (p2, s2))) in run1.iter().zip(run2.iter()).enumerate() {
+            assert_eq!(
+                p1.canonical_key(),
+                p2.canonical_key(),
+                "rank {}: pattern mismatch between run 1 and run 2",
+                i + 1
+            );
+            assert_eq!(
+                s1.to_bits(),
+                s2.to_bits(),
+                "rank {}: score bits differ between run 1 and run 2",
+                i + 1
+            );
+        }
+    }
+
+    /// Two separate process invocations with the same arguments must produce byte-identical stdout.
+    ///
+    /// Marked `#[ignore]` because it requires the release binary to be present.
+    /// Build it first: `cargo build --release`
+    #[test]
+    #[ignore = "requires `cargo build --release` to be run first"]
+    fn search_is_reproducible_cross_process() {
+        use std::io::Write;
+        use std::process::Command;
+
+        let csv = b"f1,f2,f3,class\n\
+                    A,X,0,p\n\
+                    A,Y,1,p\n\
+                    A,X,0,n\n\
+                    B,Y,1,p\n\
+                    B,X,0,n\n\
+                    B,Y,1,n\n\
+                    A,X,1,p\n\
+                    B,Y,0,n\n";
+
+        let tmp = std::env::temp_dir().join("ssdp_plus_repro_test.csv");
+        {
+            let mut f = std::fs::File::create(&tmp).expect("create temp csv");
+            f.write_all(csv).expect("write temp csv");
+        }
+
+        let bin = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("release")
+            .join("ssdp_plus");
+        assert!(
+            bin.exists(),
+            "release binary not found at {}; run `cargo build --release` first",
+            bin.display()
+        );
+
+        let args = [
+            "--dataset",
+            tmp.to_str().unwrap(),
+            "--target-attr",
+            "class",
+            "--target-value",
+            "p",
+            "-k",
+            "5",
+            "--seed",
+            "0",
+            "--cache-size",
+            "2",
+            "--min-similarity",
+            "0.10",
+        ];
+
+        let out1 = Command::new(&bin)
+            .args(args)
+            .output()
+            .expect("first run failed");
+        let out2 = Command::new(&bin)
+            .args(args)
+            .output()
+            .expect("second run failed");
+
+        // Strip the "Total runtime" line because wall-clock differs between runs.
+        let filter = |raw: &[u8]| -> Vec<u8> {
+            raw.split(|&b| b == b'\n')
+                .filter(|line| !line.starts_with(b"Total runtime"))
+                .flat_map(|line| line.iter().chain(std::iter::once(&b'\n')))
+                .copied()
+                .collect()
+        };
+
+        assert_eq!(
+            filter(&out1.stdout),
+            filter(&out2.stdout),
+            "stdout differs between two process runs with the same seed"
+        );
     }
 }
